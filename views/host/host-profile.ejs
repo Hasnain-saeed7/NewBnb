@@ -1,0 +1,94 @@
+<%- include('../partials/head') %>
+
+<body class="min-h-screen flex flex-col">
+    <%- include('../partials/nav') %>
+    <main class="container mx-auto max-w-3xl mt-10 px-4 pb-16">
+
+        <h2 class="text-3xl font-bold text-red-500 text-center mb-8">My Host Profile</h2>
+
+        <!-- Success toast (shown via query param) -->
+        <% if (typeof saved !== 'undefined' && saved) { %>
+        <div id="saveToast" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-white border border-green-200 shadow-lg rounded-2xl px-5 py-3 text-sm font-medium text-green-700 animate-fade-in">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-green-500 shrink-0">
+              <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clip-rule="evenodd" />
+            </svg>
+            Profile saved successfully!
+        </div>
+        <script>setTimeout(() => { const t = document.getElementById('saveToast'); if(t) t.style.opacity = '0'; }, 3000);</script>
+        <% } %>
+
+        <div class="bg-white border border-gray-200 rounded-2xl shadow-lg overflow-hidden">
+
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-rose-500 via-pink-500 to-orange-400 px-8 py-6 flex items-center gap-5">
+                <div class="w-20 h-20 rounded-full border-4 border-white overflow-hidden bg-red-200 flex items-center justify-center flex-shrink-0">
+                    <% if (hostUser.hostProfile && hostUser.hostProfile.profilePhoto) { %>
+                        <img src="/<%= hostUser.hostProfile.profilePhoto %>" alt="Profile Photo" class="w-full h-full object-cover">
+                    <% } else { %>
+                        <span class="text-white text-4xl font-bold uppercase"><%= hostUser.firstName.charAt(0) %></span>
+                    <% } %>
+                </div>
+                <div>
+                    <p class="text-white text-2xl font-bold"><%= hostUser.firstName %> <%= hostUser.lastName || '' %></p>
+                    <span class="inline-block mt-1 text-xs font-semibold uppercase tracking-widest bg-white text-red-500 px-3 py-1 rounded-full"><%= hostUser.userType %></span>
+                    <p class="text-red-100 text-sm mt-1">✉️ <%= hostUser.email %></p>
+                </div>
+            </div>
+
+            <!-- Form -->
+            <form action="/host/profile" method="POST" enctype="multipart/form-data" class="p-8 space-y-6">
+
+                <!-- Profile Photo -->
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-widest text-gray-500 mb-2">Profile Photo</label>
+                    <input type="file" name="photo" accept="image/*"
+                        class="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-rose-50 file:text-rose-500 hover:file:bg-rose-100 cursor-pointer border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-rose-500">
+                </div>
+
+                <!-- Bio -->
+                <div>
+                    <label for="bio" class="block text-xs font-semibold uppercase tracking-widest text-gray-500 mb-2">About Me</label>
+                    <textarea id="bio" name="bio" rows="4" placeholder="Tell guests a little about yourself..."
+                        class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-rose-500 resize-none"><%= (hostUser.hostProfile && hostUser.hostProfile.bio) ? hostUser.hostProfile.bio : '' %></textarea>
+                </div>
+
+                <!-- Phone & Languages row -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div>
+                        <label for="phone" class="block text-xs font-semibold uppercase tracking-widest text-gray-500 mb-2">Phone Number</label>
+                        <input type="tel" id="phone" name="phone" placeholder="+1 234 567 8900"
+                            value="<%= (hostUser.hostProfile && hostUser.hostProfile.phone) ? hostUser.hostProfile.phone : '' %>"
+                            class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-red-300">
+                    </div>
+                    <div>
+                        <label for="languages" class="block text-xs font-semibold uppercase tracking-widest text-gray-500 mb-2">Languages Spoken</label>
+                        <input type="text" id="languages" name="languages" placeholder="e.g. English, Spanish"
+                            value="<%= (hostUser.hostProfile && hostUser.hostProfile.languages) ? hostUser.hostProfile.languages : '' %>"
+                            class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-red-300">
+                    </div>
+                </div>
+
+                <!-- Response Time -->
+                <div>
+                    <label for="responseTime" class="block text-xs font-semibold uppercase tracking-widest text-gray-500 mb-2">Typical Response Time</label>
+                    <select id="responseTime" name="responseTime"
+                        class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-red-300 bg-white">
+                        <option value="">-- Select --</option>
+                        <option value="Within an hour"  <%= (hostUser.hostProfile && hostUser.hostProfile.responseTime === 'Within an hour')  ? 'selected' : '' %>>Within an hour</option>
+                        <option value="Within a few hours" <%= (hostUser.hostProfile && hostUser.hostProfile.responseTime === 'Within a few hours') ? 'selected' : '' %>>Within a few hours</option>
+                        <option value="Within a day"    <%= (hostUser.hostProfile && hostUser.hostProfile.responseTime === 'Within a day')    ? 'selected' : '' %>>Within a day</option>
+                        <option value="A few days or more" <%= (hostUser.hostProfile && hostUser.hostProfile.responseTime === 'A few days or more') ? 'selected' : '' %>>A few days or more</option>
+                    </select>
+                </div>
+
+                <button type="submit"
+                    class="w-full bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 active:scale-95 text-white font-bold py-3 rounded-xl text-base tracking-wide transition duration-200 shadow-md">
+                    Save Profile
+                </button>
+            </form>
+        </div>
+    </main>
+
+    <%- include('../partials/footer') %>
+</body>
+</html>

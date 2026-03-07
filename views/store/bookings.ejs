@@ -1,0 +1,89 @@
+<%- include('../partials/head') %>
+  </head>
+  <body class="min-h-screen flex flex-col">
+    <%- include('../partials/nav') %>
+    <main class="container mx-auto mt-10 max-w-5xl px-4">
+      <h2 class="text-4xl font-bold text-red-500 mb-8 text-center">My Bookings</h2>
+
+      <% if (bookings.length === 0) { %>
+        <div class="text-center py-20">
+          <p class="text-2xl text-gray-400 font-medium">You have no bookings yet.</p>
+          <a href="/homes" class="inline-block mt-6 bg-red-500 hover:bg-red-600 text-white font-bold px-6 py-3 rounded-xl transition">Browse Homes</a>
+        </div>
+      <% } else { %>
+        <div class="space-y-6">
+          <% bookings.slice().reverse().forEach(function(booking) { %>
+
+            <% if (!booking.home) { %>
+              <div class="flex items-center gap-4 border border-gray-200 rounded-2xl shadow-sm overflow-hidden bg-gray-50 px-6 py-5">
+                <span class="text-3xl">🏚️</span>
+                <div>
+                  <p class="font-semibold text-gray-500">This property is no longer available</p>
+                  <p class="text-xs text-gray-400 mt-1">Booked on <%= new Date(booking.bookedAt).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}) %></p>
+                </div>
+              </div>
+            <% } else { %>
+            <div class="flex flex-col md:flex-row border border-gray-200 rounded-2xl shadow-md overflow-hidden bg-white hover:shadow-lg transition-shadow duration-200">
+
+                <!-- LEFT: Image — strictly fixed, never stretches -->
+                <div class="relative h-52 md:h-auto md:w-56 shrink-0 overflow-hidden bg-gray-100">
+                  <% if (booking.home && booking.home.photo && booking.home.photo.url) { %>
+                    <img src="<%= booking.home.photo.url %>"
+                         alt="<%= booking.home.houseName %>"
+                         class="absolute inset-0 w-full h-full object-cover">
+                  <% } else { %>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                      <span class="text-5xl">🏠</span>
+                    </div>
+                  <% } %>
+                </div>
+
+                <!-- RIGHT: Details -->
+                <div class="flex-1 min-w-0 p-6 flex flex-col justify-between gap-4">
+
+                  <div>
+                    <div class="flex justify-between items-start gap-2 mb-1">
+                      <h3 class="text-xl font-bold text-gray-800 leading-tight">
+                        <%= booking.home ? booking.home.houseName : 'Home' %>
+                      </h3>
+                      <span class="shrink-0 text-xs font-semibold bg-green-100 text-green-700 px-3 py-1 rounded-full">Confirmed</span>
+                    </div>
+                    <p class="text-sm text-gray-500 mb-4">
+                      📍 <%= booking.home ? booking.home.location : '' %>
+                    </p>
+
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                      <div class="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5">
+                        <p class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">Check-in</p>
+                        <p class="font-semibold text-gray-800"><%= new Date(booking.checkIn).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}) %></p>
+                      </div>
+                      <div class="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5">
+                        <p class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">Check-out</p>
+                        <p class="font-semibold text-gray-800"><%= new Date(booking.checkOut).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}) %></p>
+                      </div>
+                      <div class="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5">
+                        <p class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">Guests</p>
+                        <p class="font-semibold text-gray-800"><%= booking.guests %></p>
+                      </div>
+                      <div class="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5">
+                        <p class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">Total</p>
+                        <p class="font-bold text-green-600 text-base">$<%= booking.total.toLocaleString() %></p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p class="text-xs text-gray-400 border-t border-gray-100 pt-3 pb-4">
+                    Booked on <%= new Date(booking.bookedAt).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}) %>
+                  </p>
+
+                </div>
+            </div>
+            <% } %>
+
+          <% }) %>
+        </div>
+      <% } %>
+    </main>
+    <%- include('../partials/footer') %>
+  </body>
+</html>
