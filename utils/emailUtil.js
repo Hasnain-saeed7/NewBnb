@@ -5,10 +5,12 @@ const nodemailer = require('nodemailer');
  */
 const createTransporter = () => {
   return nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
     auth: {
       user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,   // Gmail App Password (not your real password)
+      pass: process.env.EMAIL_PASS,
     },
   });
 };
@@ -30,9 +32,6 @@ exports.generateOtp = () => {
  */
 exports.sendOtpEmail = async (toEmail, otp, firstName) => {
   const transporter = createTransporter();
-
-  // Verify SMTP connection / credentials before trying to send
-  await transporter.verify();
 
   const mailOptions = {
     from: `"StayNow" <${process.env.EMAIL_USER}>`,
