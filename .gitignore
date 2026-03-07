@@ -9,8 +9,8 @@ node_modules/
 # Uploads (local file storage)
 uploads/
 
-# Tailwind compiled output (regenerated at build)
-public/output.css
+# Tailwind source (output is committed for deployment)
+views/input.css
 
 # Logs
 logs/
