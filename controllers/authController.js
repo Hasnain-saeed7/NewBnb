@@ -115,16 +115,19 @@ exports.postSignup = [
       req.session.otpData    = { otp, expiry: otpExpiry, attempts: 0 };
 
       // ── 6. Redirect immediately, then send OTP email in background ────
-      // NOT awaited — user reaches the verify page instantly.
-      // The OTP is already in the session; email arrives within seconds.
       req.session.save((err) => {
         if (err) return next(err);
         res.redirect("/verify-otp");
 
+        // Log OTP to server console (visible in Render logs) for debugging
+        console.log(`[OTP] ${email} → ${otp}`);
+
         // Fire-and-forget after redirect is sent
-        sendOtpEmail(email, otp, firstName).catch((e) => {
-          console.error('[signup] OTP email failed for', email, ':', e.message);
-        });
+        sendOtpEmail(email, otp, firstName)
+          .then(() => console.log(`[OTP] Email sent successfully to ${email}`))
+          .catch((e) => {
+            console.error(`[OTP] Email FAILED for ${email} | code: ${e.code} | message: ${e.message}`);
+          });
       });
     } catch (err) {
       next(err);
