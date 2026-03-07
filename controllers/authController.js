@@ -114,31 +114,20 @@ exports.postSignup = [
       req.session.pendingUser = { firstName, lastName, email, hashedPassword, userType };
       req.session.otpData    = { otp, expiry: otpExpiry, attempts: 0 };
 
-      // ── 6. Send OTP email — may throw if address is unreachable ───────
-      await sendOtpEmail(email, otp, firstName);
-
+      // ── 6. Redirect immediately, then send OTP email in background ────
+      // NOT awaited — user reaches the verify page instantly.
+      // The OTP is already in the session; email arrives within seconds.
       req.session.save((err) => {
         if (err) return next(err);
         res.redirect("/verify-otp");
+
+        // Fire-and-forget after redirect is sent
+        sendOtpEmail(email, otp, firstName).catch((e) => {
+          console.error('[signup] OTP email failed for', email, ':', e.message);
+        });
       });
     } catch (err) {
-      // SMTP failure / unreachable address
-      const isEmailError =
-        err.code === "ECONNREFUSED" ||
-        err.code === "ENOTFOUND"    ||
-        err.responseCode >= 500     ||
-        (err.response && err.response.includes("550"));
-
-      const message = isEmailError
-        ? "This email address does not exist. Please use a valid email."
-        : err.message;
-
-      return res.status(422).render("auth/signup", {
-        pageTitle: "Signup",
-        currentPage: "signup",
-        errors: [message],
-        oldInput: { firstName, lastName, email, userType },
-      });
+      next(err);
     }
   },
 ];
@@ -222,8 +211,6 @@ exports.postResendOtp = async (req, res, next) => {
     const otpExpiry = Date.now() + OTP_TTL_MS;
     req.session.otpData = { otp, expiry: otpExpiry, attempts: 0 };
 
-    await sendOtpEmail(pendingUser.email, otp, pendingUser.firstName);
-
     req.session.save((err) => {
       if (err) return next(err);
       res.render("auth/verify-otp", {
@@ -233,15 +220,14 @@ exports.postResendOtp = async (req, res, next) => {
         errors: [],
         success: "A new verification code has been sent to your inbox.",
       });
+
+      // Fire-and-forget after response is sent
+      sendOtpEmail(pendingUser.email, otp, pendingUser.firstName).catch((e) => {
+        console.error('[resend-otp] email failed:', e.message);
+      });
     });
   } catch (err) {
-    res.status(422).render("auth/verify-otp", {
-      pageTitle: "Verify Email",
-      currentPage: "signup",
-      email: pendingUser.email,
-      errors: ["This email address does not exist. Please use a valid email."],
-      success: null,
-    });
+    next(err);
   }
 };
 
