@@ -102,19 +102,25 @@ exports.sendOtpEmail = async (toEmail, otp, firstName) => {
       </html>
     `;
 
-  await axios.post(
-    'https://api.brevo.com/v3/smtp/email',
-    {
-      sender: { name: 'StayNow', email: process.env.EMAIL_USER },
-      to: [{ email: toEmail }],
-      subject: 'Verify your StayNow account — Your OTP Code',
-      htmlContent,
-    },
-    {
-      headers: {
-        'api-key': process.env.BREVO_API_KEY,
-        'Content-Type': 'application/json',
+  try {
+    await axios.post(
+      'https://api.brevo.com/v3/smtp/email',
+      {
+        sender: { name: 'StayNow', email: process.env.EMAIL_USER },
+        to: [{ email: toEmail }],
+        subject: 'Verify your StayNow account — Your OTP Code',
+        htmlContent,
       },
-    }
-  );
+      {
+        headers: {
+          'api-key': process.env.BREVO_API_KEY,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+  } catch (err) {
+    const detail = err.response ? JSON.stringify(err.response.data) : err.message;
+    console.error('[Brevo RAW ERROR]', detail);
+    throw err;
+  }
 };
