@@ -24,7 +24,8 @@ const errorsController = require("./controllers/errors");
 let cachedConn = null;
 async function connectDB() {
   if (cachedConn && mongoose.connection.readyState === 1) return cachedConn;
-  cachedConn = await mongoose.connect(process.env.MONGO_URI);
+  const uri = process.env.MONGO_URI || process.env.ATLASDB_URL;
+  cachedConn = await mongoose.connect(uri);
   console.log('Connected to MongoDB');
   return cachedConn;
 }
@@ -43,7 +44,7 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
 const store = new MongoDBStore({
-  uri: process.env.MONGO_URI,
+  uri: process.env.MONGO_URI || process.env.ATLASDB_URL,
   collection: 'sessions'
 });
 
