@@ -23,15 +23,17 @@ const errorsController = require("./controllers/errors");
 
 const app = express();
 
-// Trust Vercel's reverse proxy so secure cookies and req.ip work correctly
+// Trust Railway/Render reverse proxy so secure cookies and req.ip work correctly
 app.set('trust proxy', 1);
 
 // Unique timestamp for this process run — used to invalidate sessions from
 // previous server instances stored in MongoDB.
 app.locals.serverBoot = Date.now();
 
+
+
 app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
+app.set('views', 'views');
 
 const store = new MongoDBStore({
   uri: DB_PATH,
@@ -61,9 +63,7 @@ app.use(session({
   saveUninitialized: false,
   store: store,
   cookie: {
-    maxAge: 1000 * 60 * 60 * 24, // 24 hours
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax'
+    maxAge: 1000 * 60 * 60 * 24 // 24 hours
   }
 }));
 
@@ -97,19 +97,14 @@ app.use("/host", hostRouter);
 
 app.use(errorsController.pageNotFound);
 
-// Connect to MongoDB at module load time (required for Vercel serverless)
-mongoose.connect(DB_PATH).catch(err => {
-  console.error('MongoDB connection error:', err);
-});
+const PORT = process.env.PORT || 3003;
 
-// Export app for Vercel (serverless)
-module.exports = app;
-
-// Start HTTP server only when run directly (local dev)
-if (require.main === module) {
-  const PORT = process.env.PORT || 3003;
+mongoose.connect(DB_PATH).then(() => {
+  console.log('Connected to Mongo');
   app.listen(PORT, () => {
     console.log(`Server running on address http://localhost:${PORT}`);
   });
-}
+}).catch(err => {
+  console.log('Error while connecting to Mongo: ', err);
+});
 
