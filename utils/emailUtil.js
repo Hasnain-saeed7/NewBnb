@@ -106,7 +106,7 @@ exports.sendOtpEmail = async (toEmail, otp, firstName) => {
     await axios.post(
       'https://api.brevo.com/v3/smtp/email',
       {
-        sender: { name: 'StayNow', email: process.env.EMAIL_USER },
+        sender: { name: 'StayNow', email: 'hasnainqureshi2232@gmail.com' },
         to: [{ email: toEmail }],
         subject: 'Verify your StayNow account — Your OTP Code',
         htmlContent,
