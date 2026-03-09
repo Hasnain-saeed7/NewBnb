@@ -10,7 +10,6 @@ const createTransporter = () => {
     secure: false,
     requireTLS: true,
     family: 4,
-    localAddress: '0.0.0.0',   // force local socket to bind IPv4, not IPv6 (:::0)
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
