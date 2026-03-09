@@ -7,6 +7,8 @@ const storeController = require("../controllers/storeController");
 
 const requireLogin = (req, res, next) => {
   if (!res.locals.isLoggedIn) return res.redirect("/login");
+  // No Referer = fresh browser open / tab restore / typed URL → always land on home first
+  if (req.method === 'GET' && !req.headers.referer) return res.redirect('/listings');
   next();
 };
 
