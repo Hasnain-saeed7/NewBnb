@@ -1,4 +1,4 @@
-const nodemailer = require('nodemailer');
+const axios = require('axios');
 
 /**
  * Generates a cryptographically random 6-digit OTP string
@@ -7,25 +7,9 @@ exports.generateOtp = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
-// Reusable Nodemailer transporter — SMTP port 587 (STARTTLS, not SSL)
-// Works on Vercel's network where port 465 (SSL) is blocked.
-// Set these env vars in Vercel dashboard:
-//   SMTP_HOST  — e.g. smtp-relay.brevo.com  (or smtp.gmail.com)
-//   SMTP_USER  — your SMTP login / email
-//   SMTP_PASS  — your SMTP password / app password / Brevo SMTP key
-//   SMTP_FROM  — sender display address  e.g. "StayNow <no-reply@example.com>"
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: 587,
-  secure: false,        // false = STARTTLS upgrade on port 587
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
-
 /**
  * Sends a 6-digit OTP to the given email address.
+ * Throws an error if the mail cannot be delivered (bad address, SMTP rejection, etc.)
  *
  * @param {string} toEmail   - Recipient email address
  * @param {string} otp       - The 6-digit code to send
@@ -119,15 +103,24 @@ exports.sendOtpEmail = async (toEmail, otp, firstName) => {
     `;
 
   try {
-    await transporter.sendMail({
-      from: process.env.SMTP_FROM || `"StayNow" <${process.env.SMTP_USER}>`,
-      to: toEmail,
-      subject: 'Verify your StayNow account — Your OTP Code',
-      html: htmlContent,
-    });
+    await axios.post(
+      'https://api.brevo.com/v3/smtp/email',
+      {
+        sender: { name: 'StayNow', email: 'hasnainqureshi2232@gmail.com' },
+        to: [{ email: toEmail }],
+        subject: 'Verify your StayNow account — Your OTP Code',
+        htmlContent,
+      },
+      {
+        headers: {
+          'api-key': process.env.BREVO_API_KEY,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
   } catch (err) {
-    console.error('[Nodemailer SMTP ERROR]', err.message);
+    const detail = err.response ? JSON.stringify(err.response.data) : err.message;
+    console.error('[Brevo RAW ERROR]', detail);
     throw err;
   }
 };
-
