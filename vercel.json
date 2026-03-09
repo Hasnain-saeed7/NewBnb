@@ -6,8 +6,8 @@
       "use": "@vercel/node",
       "config": {
         "includeFiles": [
-          "public/**",
           "views/**",
+          "public/**",
           "utils/**",
           "controllers/**",
           "models/**",
@@ -18,6 +18,18 @@
     }
   ],
   "routes": [
+    {
+      "src": "/output\\.css",
+      "dest": "/public/output.css"
+    },
+    {
+      "src": "/home\\.css",
+      "dest": "/public/home.css"
+    },
+    {
+      "src": "/images/(.*)",
+      "dest": "/public/images/$1"
+    },
     {
       "src": "/(.*)",
       "dest": "app.js"

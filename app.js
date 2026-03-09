@@ -102,10 +102,10 @@ mongoose.connect(DB_PATH).catch(err => {
   console.error('MongoDB connection error:', err);
 });
 
-// Export app for Vercel (serverless environment)
+// Export app for Vercel (serverless)
 module.exports = app;
 
-// Start HTTP server only when run directly (local development)
+// Start HTTP server only when run directly (local dev)
 if (require.main === module) {
   const PORT = process.env.PORT || 3003;
   app.listen(PORT, () => {
