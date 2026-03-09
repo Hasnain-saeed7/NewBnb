@@ -1,21 +1,6 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-/**
- * Creates a Nodemailer transporter using Gmail credentials from .env
- */
-const createTransporter = () => {
-  return nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 587,
-    secure: false,
-    requireTLS: true,
-    family: 4,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  });
-};
+const getResend = () => new Resend(process.env.RESEND_API_KEY);
 
 /**
  * Generates a cryptographically random 6-digit OTP string
@@ -33,12 +18,13 @@ exports.generateOtp = () => {
  * @param {string} firstName - Used to personalise the greeting
  */
 exports.sendOtpEmail = async (toEmail, otp, firstName) => {
-  const transporter = createTransporter();
+  const resend = getResend();
 
   const mailOptions = {
-    from: `"StayNow" <${process.env.EMAIL_USER}>`,
+    from: 'StayNow <onboarding@resend.dev>',
     to: toEmail,
     subject: 'Verify your StayNow account — Your OTP Code',
+    reply_to: process.env.EMAIL_USER,
     html: `
       <!DOCTYPE html>
       <html lang="en">
@@ -126,6 +112,14 @@ exports.sendOtpEmail = async (toEmail, otp, firstName) => {
     `,
   };
 
-  const info = await transporter.sendMail(mailOptions);
-  return info;
+  const { data, error } = await resend.emails.send({
+    from: mailOptions.from,
+    to: mailOptions.to,
+    subject: mailOptions.subject,
+    reply_to: mailOptions.reply_to,
+    html: mailOptions.html,
+  });
+
+  if (error) throw new Error(error.message);
+  return data;
 };
