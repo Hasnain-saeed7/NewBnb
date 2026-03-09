@@ -1,0 +1,164 @@
+<%- include('../partials/head') %>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>body { font-family: 'Inter', sans-serif; }</style>
+  </head>
+  <body class="bg-gray-50 min-h-screen flex flex-col">
+    <%- include('../partials/nav') %>
+
+    <main class="flex-1 flex items-center justify-center py-12 px-4">
+      <div class="w-full max-w-md">
+        <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+
+          <!-- Icon + Title -->
+          <div class="flex flex-col items-center mb-8">
+            <div class="w-16 h-16 rounded-full flex items-center justify-center mb-4" style="background-color:#fff0f3">
+              <i class="fas fa-shield-alt text-2xl" style="color:#FF385C"></i>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900">Check your inbox</h1>
+            <p class="text-gray-500 text-sm mt-2 text-center leading-relaxed">
+              We sent a 6-digit code to<br/>
+              <strong class="text-gray-800"><%= email %></strong>
+            </p>
+          </div>
+
+          <%- include('../partials/errors') %>
+
+          <!-- Success flash (resend) -->
+          <% if (typeof success !== 'undefined' && success) { %>
+            <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl text-sm flex items-center gap-2 mb-4">
+              <i class="fas fa-check-circle"></i>
+              <span><%= success %></span>
+            </div>
+          <% } %>
+
+          <form action="/verify-reset-otp" method="POST" class="space-y-6">
+
+            <!-- 6 individual digit boxes -->
+            <div class="flex justify-center gap-2.5" id="otp-boxes">
+              <% for (let i = 0; i < 6; i++) { %>
+                <input
+                  type="text"
+                  maxlength="1"
+                  inputmode="numeric"
+                  pattern="[0-9]"
+                  data-index="<%= i %>"
+                  class="otp-digit w-12 h-14 text-center text-2xl font-bold border-2 border-gray-200
+                         rounded-xl focus:outline-none transition"
+                  onfocus="this.style.borderColor='#FF385C';this.style.boxShadow='0 0 0 3px rgba(255,56,92,0.15)'"
+                  onblur="this.style.borderColor='';this.style.boxShadow=''"
+                  autocomplete="one-time-code"
+                  required
+                />
+              <% } %>
+            </div>
+
+            <!-- Hidden field that collects the full 6-digit code -->
+            <input type="hidden" name="otp" id="otp-hidden" />
+
+            <button
+              type="submit"
+              id="verify-btn"
+              disabled
+              class="w-full py-3 rounded-xl font-semibold text-sm transition duration-200 flex items-center justify-center gap-2 text-white opacity-50 cursor-not-allowed"
+              style="background-color:#FF385C"
+              onmouseover="if(!this.disabled)this.style.backgroundColor='#e0314f'"
+              onmouseout="this.style.backgroundColor='#FF385C'">
+              <i class="fas fa-lock-open"></i>
+              Verify &amp; Continue
+            </button>
+          </form>
+
+          <!-- Resend with countdown -->
+          <div class="text-center text-sm text-gray-500 mt-6">
+            <span id="resend-timer-msg">
+              Resend code in <strong id="countdown">60</strong>s
+            </span>
+            <span id="resend-action" class="hidden">
+              Didn't receive a code?
+              <form action="/resend-reset-otp" method="POST" class="inline">
+                <button type="submit" class="font-semibold hover:underline" style="color:#FF385C">
+                  Resend OTP
+                </button>
+              </form>
+            </span>
+          </div>
+
+          <!-- Go back -->
+          <p class="text-center text-sm text-gray-400 mt-3">
+            <a href="/forgot-password" class="hover:underline">
+              <i class="fas fa-arrow-left mr-1"></i> Back
+            </a>
+          </p>
+
+        </div>
+      </div>
+    </main>
+
+    <%- include('../partials/footer') %>
+
+    <script>
+      // ── OTP box auto-focus / paste / assemble ────────────────────────────
+      const digits = document.querySelectorAll('.otp-digit');
+      const hidden  = document.getElementById('otp-hidden');
+      const btn     = document.getElementById('verify-btn');
+
+      function assembleOtp() {
+        const val = [...digits].map(d => d.value).join('');
+        hidden.value = val;
+        const complete = val.length === 6 && /^\d{6}$/.test(val);
+        btn.disabled = !complete;
+        btn.style.opacity  = complete ? '1'           : '0.5';
+        btn.style.cursor   = complete ? 'pointer'     : 'not-allowed';
+      }
+
+      digits.forEach((input, idx) => {
+        input.addEventListener('keypress', (e) => {
+          if (!/[0-9]/.test(e.key)) e.preventDefault();
+        });
+
+        input.addEventListener('input', () => {
+          input.value = input.value.replace(/\D/, '');
+          if (input.value && idx < digits.length - 1) digits[idx + 1].focus();
+          assembleOtp();
+        });
+
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Backspace' && !input.value && idx > 0) {
+            digits[idx - 1].focus();
+          }
+        });
+
+        input.addEventListener('paste', (e) => {
+          const pasted = (e.clipboardData || window.clipboardData)
+                          .getData('text').replace(/\D/g, '').slice(0, 6);
+          if (pasted.length === 6) {
+            e.preventDefault();
+            pasted.split('').forEach((ch, i) => { digits[i].value = ch; });
+            digits[5].focus();
+            assembleOtp();
+          }
+        });
+      });
+
+      // Focus first box on load
+      digits[0].focus();
+
+      // ── Resend countdown ──────────────────────────────────────────────────
+      let seconds = 60;
+      const countdownEl   = document.getElementById('countdown');
+      const timerMsg      = document.getElementById('resend-timer-msg');
+      const resendAction  = document.getElementById('resend-action');
+
+      const timer = setInterval(() => {
+        seconds--;
+        countdownEl.textContent = seconds;
+        if (seconds <= 0) {
+          clearInterval(timer);
+          timerMsg.classList.add('hidden');
+          resendAction.classList.remove('hidden');
+        }
+      }, 1000);
+    </script>
+  </body>
+</html>

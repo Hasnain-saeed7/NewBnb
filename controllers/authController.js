@@ -7,12 +7,16 @@ const { generateOtp, sendOtpEmail } = require("../utils/emailUtil");
 const OTP_TTL_MS = 10 * 60 * 1000;
 
 exports.getLogin = (req, res, next) => {
-  const justVerified = req.query.verified === "1";
+  const justVerified  = req.query.verified === "1";
+  const justReset     = req.query.reset    === "1";
+  let success = null;
+  if (justVerified) success = "Email verified successfully! You can now log in.";
+  if (justReset)    success = "Password reset successfully! You can now log in with your new password.";
   res.render("auth/login", {
     pageTitle: "Login",
     currentPage: "login",
     errors: [],
-    success: justVerified ? "Email verified successfully! You can now log in." : null,
+    success,
     oldInput: { email: "" },
   });
 };
@@ -115,19 +119,16 @@ exports.postSignup = [
       req.session.otpData    = { otp, expiry: otpExpiry, attempts: 0 };
 
       // ── 6. Redirect immediately, then send OTP email in background ────
+      // NOT awaited — user reaches the verify page instantly.
+      // The OTP is already in the session; email arrives within seconds.
       req.session.save((err) => {
         if (err) return next(err);
         res.redirect("/verify-otp");
 
-        // Log OTP to server console (visible in Render logs) for debugging
-        console.log(`[OTP] ${email} → ${otp}`);
-
         // Fire-and-forget after redirect is sent
-        sendOtpEmail(email, otp, firstName)
-          .then(() => console.log(`[OTP] Email sent successfully to ${email}`))
-          .catch((e) => {
-            console.error(`[OTP] Email FAILED for ${email} | code: ${e.code} | message: ${e.message}`);
-          });
+        sendOtpEmail(email, otp, firstName).catch((e) => {
+          console.error('[signup] OTP email failed for', email, ':', e.message);
+        });
       });
     } catch (err) {
       next(err);
@@ -285,3 +286,214 @@ exports.postLogout = (req, res, next) => {
     res.redirect("/login");
   })
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FORGOT PASSWORD FLOW
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ─── GET /forgot-password ────────────────────────────────────────────────────
+exports.getForgotPassword = (req, res) => {
+  res.render("auth/forgot-password", {
+    pageTitle: "Forgot Password",
+    currentPage: "",
+    errors: [],
+    success: null,
+    oldInput: { email: "" },
+  });
+};
+
+// ─── POST /forgot-password ───────────────────────────────────────────────────
+exports.postForgotPassword = async (req, res, next) => {
+  const email = (req.body.email || "").trim().toLowerCase();
+
+  const renderError = (msg) =>
+    res.status(422).render("auth/forgot-password", {
+      pageTitle: "Forgot Password",
+      currentPage: "",
+      errors: [msg],
+      success: null,
+      oldInput: { email },
+    });
+
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return renderError("Please enter a valid email address.");
+  }
+
+  try {
+    const user = await User.findOne({ email });
+    // Always show the same message to prevent email enumeration
+    if (!user) {
+      return res.render("auth/forgot-password", {
+        pageTitle: "Forgot Password",
+        currentPage: "",
+        errors: [],
+        success: "If that email is registered, you'll receive a code shortly.",
+        oldInput: { email: "" },
+      });
+    }
+
+    const otp     = generateOtp();
+    const expiry  = Date.now() + OTP_TTL_MS;
+
+    req.session.resetData = { email, otp, expiry, attempts: 0, verified: false };
+
+    req.session.save((err) => {
+      if (err) return next(err);
+      res.redirect("/verify-reset-otp");
+
+      sendOtpEmail(email, otp, user.firstName, "Password Reset").catch((e) => {
+        console.error("[forgot-password] OTP email failed for", email, ":", e.message);
+      });
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ─── GET /verify-reset-otp ───────────────────────────────────────────────────
+exports.getVerifyResetOtp = (req, res) => {
+  if (!req.session.resetData || req.session.resetData.verified) {
+    return res.redirect("/forgot-password");
+  }
+
+  res.render("auth/verify-reset-otp", {
+    pageTitle: "Verify Reset Code",
+    currentPage: "",
+    email: req.session.resetData.email,
+    errors: [],
+    success: null,
+  });
+};
+
+// ─── POST /verify-reset-otp ──────────────────────────────────────────────────
+exports.postVerifyResetOtp = (req, res, next) => {
+  const { resetData } = req.session;
+  if (!resetData || resetData.verified) return res.redirect("/forgot-password");
+
+  const entered = (req.body.otp || "").trim();
+
+  const renderError = (msg) =>
+    res.status(422).render("auth/verify-reset-otp", {
+      pageTitle: "Verify Reset Code",
+      currentPage: "",
+      email: resetData.email,
+      errors: [msg],
+      success: null,
+    });
+
+  if (Date.now() > resetData.expiry) {
+    req.session.resetData = null;
+    return renderError("Your code has expired. Please request a new one.");
+  }
+
+  if (resetData.attempts >= 5) {
+    return renderError("Too many incorrect attempts. Please request a new code.");
+  }
+
+  if (entered !== resetData.otp) {
+    req.session.resetData.attempts += 1;
+    const remaining = 5 - req.session.resetData.attempts;
+    return renderError(
+      `Incorrect code. ${remaining > 0 ? remaining + " attempt(s) remaining." : "No more attempts. Please resend."}`
+    );
+  }
+
+  // ✅ Correct — mark as verified, proceed to reset page
+  req.session.resetData.verified = true;
+  req.session.save((err) => {
+    if (err) return next(err);
+    res.redirect("/reset-password");
+  });
+};
+
+// ─── POST /resend-reset-otp ──────────────────────────────────────────────────
+exports.postResendResetOtp = async (req, res, next) => {
+  const { resetData } = req.session;
+  if (!resetData || resetData.verified) return res.redirect("/forgot-password");
+
+  try {
+    const user = await User.findOne({ email: resetData.email });
+    const otp    = generateOtp();
+    const expiry = Date.now() + OTP_TTL_MS;
+
+    req.session.resetData = { ...resetData, otp, expiry, attempts: 0 };
+
+    req.session.save((err) => {
+      if (err) return next(err);
+      res.render("auth/verify-reset-otp", {
+        pageTitle: "Verify Reset Code",
+        currentPage: "",
+        email: resetData.email,
+        errors: [],
+        success: "A new code has been sent to your inbox.",
+      });
+
+      if (user) {
+        sendOtpEmail(resetData.email, otp, user.firstName, "Password Reset").catch((e) => {
+          console.error("[resend-reset-otp] email failed:", e.message);
+        });
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ─── GET /reset-password ─────────────────────────────────────────────────────
+exports.getResetPassword = (req, res) => {
+  const { resetData } = req.session;
+  if (!resetData || !resetData.verified) return res.redirect("/forgot-password");
+
+  res.render("auth/reset-password", {
+    pageTitle: "Reset Password",
+    currentPage: "",
+    errors: [],
+  });
+};
+
+// ─── POST /reset-password ────────────────────────────────────────────────────
+exports.postResetPassword = async (req, res, next) => {
+  const { resetData } = req.session;
+  if (!resetData || !resetData.verified) return res.redirect("/forgot-password");
+
+  const { password, confirmPassword } = req.body;
+
+  const renderError = (msg) =>
+    res.status(422).render("auth/reset-password", {
+      pageTitle: "Reset Password",
+      currentPage: "",
+      errors: [msg],
+    });
+
+  if (!password || password !== confirmPassword) {
+    return renderError("Passwords do not match.");
+  }
+
+  const pwRules = [
+    [/.{8,}/,   "Password must be at least 8 characters long."],
+    [/[A-Z]/,   "Password must contain at least one uppercase letter."],
+    [/[a-z]/,   "Password must contain at least one lowercase letter."],
+    [/[0-9]/,   "Password must contain at least one number."],
+    [/[!@&]/,   "Password must contain at least one special character (!@&)."],
+  ];
+
+  for (const [regex, msg] of pwRules) {
+    if (!regex.test(password)) return renderError(msg);
+  }
+
+  try {
+    const hashedPassword = await bcrypt.hash(password, 12);
+    await User.findOneAndUpdate(
+      { email: resetData.email },
+      { password: hashedPassword }
+    );
+
+    req.session.resetData = null;
+    req.session.save((err) => {
+      if (err) return next(err);
+      res.redirect("/login?reset=1");
+    });
+  } catch (err) {
+    next(err);
+  }
+};
