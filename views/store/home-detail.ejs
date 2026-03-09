@@ -108,7 +108,7 @@
             <div class="relative shrink-0">
               <% if (home.owner && home.owner.hostProfile && home.owner.hostProfile.profilePhoto) { %>
                 <img
-                  src="/<%= home.owner.hostProfile.profilePhoto.replace('public', '') %>"
+                  src="<%= home.owner.hostProfile.profilePhoto.startsWith('http') ? home.owner.hostProfile.profilePhoto : '/' + home.owner.hostProfile.profilePhoto.replace('public', '') %>"
                   alt="Host"
                   class="w-16 h-16 rounded-full object-cover shadow-md border-2 border-gray-100"
                   onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
@@ -242,7 +242,7 @@
               <div class="relative shrink-0">
                 <% if (home.owner && home.owner.hostProfile && home.owner.hostProfile.profilePhoto) { %>
                   <img
-                    src="/<%= home.owner.hostProfile.profilePhoto %>"
+                    src="<%= home.owner.hostProfile.profilePhoto.startsWith('http') ? home.owner.hostProfile.profilePhoto : '/' + home.owner.hostProfile.profilePhoto %>"
                     alt="Host"
                     class="w-20 h-20 rounded-full object-cover shadow-md border-2 border-gray-100"
                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"

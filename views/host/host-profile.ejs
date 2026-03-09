@@ -23,7 +23,7 @@
             <div class="bg-gradient-to-r from-rose-500 via-pink-500 to-orange-400 px-8 py-6 flex items-center gap-5">
                 <div class="w-20 h-20 rounded-full border-4 border-white overflow-hidden bg-red-200 flex items-center justify-center flex-shrink-0">
                     <% if (hostUser.hostProfile && hostUser.hostProfile.profilePhoto) { %>
-                        <img src="/<%= hostUser.hostProfile.profilePhoto %>" alt="Profile Photo" class="w-full h-full object-cover">
+                        <img src="<%= hostUser.hostProfile.profilePhoto.startsWith('http') ? hostUser.hostProfile.profilePhoto : '/' + hostUser.hostProfile.profilePhoto %>" alt="Profile Photo" class="w-full h-full object-cover">
                     <% } else { %>
                         <span class="text-white text-4xl font-bold uppercase"><%= hostUser.firstName.charAt(0) %></span>
                     <% } %>

@@ -1,6 +1,5 @@
 const Home = require("../models/home");
 const User = require("../models/user");
-const fs = require("fs");
 const { cloudinary } = require('../cloudinary');
 const mapboxSdk = require('@mapbox/mapbox-sdk');
 const mbxGeocoding = require('@mapbox/mapbox-sdk/services/geocoding');
@@ -206,9 +205,6 @@ exports.postHostProfile = async (req, res, next) => {
     user.hostProfile.responseTime = responseTime || '';
     const photoFile = req.files?.['photo']?.[0];
     if (photoFile) {
-      if (user.hostProfile.profilePhoto) {
-        fs.unlink(user.hostProfile.profilePhoto, () => {});
-      }
       user.hostProfile.profilePhoto = photoFile.path;
     }
     user.markModified('hostProfile');
