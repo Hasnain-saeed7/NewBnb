@@ -1,4 +1,4 @@
-// Load environment variables from .env (no-op in production where env vars are injected)
+// Load environment variables from .env
 require('dotenv').config();
 
 // Force IPv4 DNS — fixes querySrv ESERVFAIL on some networks/Windows machines
@@ -9,26 +9,17 @@ const path = require('path');
 const express = require('express');
 const session = require('express-session');
 const MongoDBStore = require('connect-mongodb-session')(session);
-const mongoose = require('mongoose');
+const { default: mongoose } = require('mongoose');
 const multer = require('multer');
 const { storage: cloudinaryStorage } = require('./cloudinary');
+
+const DB_PATH = process.env.MONGO_URI || "mongodb+srv://hass:hass@hasnain.3rdoivb.mongodb.net/airbnb?appName=Hasnain";
 
 const storeRouter = require("./routes/storeRouter");
 const hostRouter = require("./routes/hostRouter");
 const authRouter = require("./routes/authRouter");
+const rootDir = require("./utils/pathUtil");
 const errorsController = require("./controllers/errors");
-
-// ── MongoDB connection cache (serverless-safe) ───────────────────────────────
-// Vercel re-uses warm function instances, so we reuse an existing connection
-// instead of opening a new one on every request.
-let cachedConn = null;
-async function connectDB() {
-  if (cachedConn && mongoose.connection.readyState === 1) return cachedConn;
-  const uri = process.env.MONGO_URI || process.env.ATLASDB_URL;
-  cachedConn = await mongoose.connect(uri);
-  console.log('Connected to MongoDB');
-  return cachedConn;
-}
 
 const app = express();
 
@@ -40,18 +31,19 @@ app.set('trust proxy', 1);
 app.locals.serverBoot = Date.now();
 
 app.set('view engine', 'ejs');
-// Use __dirname so the path is correct whether app.js is run directly or imported
 app.set('views', path.join(__dirname, 'views'));
 
 const store = new MongoDBStore({
-  uri: process.env.MONGO_URI || process.env.ATLASDB_URL,
+  uri: DB_PATH,
   collection: 'sessions'
 });
 
+// ✅ Add store error handling
 store.on('error', (error) => {
   console.log('Session store error:', error);
 });
 
+// ✅ Fix 1: urlencoded with proper options
 app.use(express.urlencoded({ extended: false }));
 app.use(multer({ storage: cloudinaryStorage }).fields([
   { name: 'photo',  maxCount: 1 },
@@ -60,22 +52,25 @@ app.use(multer({ storage: cloudinaryStorage }).fields([
   { name: 'image3', maxCount: 1 },
   { name: 'image4', maxCount: 1 },
 ]));
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(rootDir, 'public')));
 
+// ✅ Fix 2: saveUninitialized false, add cookie config
 app.use(session({
-  secret: process.env.SESSION_SECRET,
+  secret: "KnowledgeGate AI with Complete Coding",
   resave: false,
   saveUninitialized: false,
   store: store,
   cookie: {
     maxAge: 1000 * 60 * 60 * 24, // 24 hours
-    // In production (Vercel = HTTPS) cookies must be secure and SameSite=None
     secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    sameSite: 'lax'
   }
 }));
 
 // ── Session invalidation on server restart ───────────────────────────────────
+// Any authenticated session that was persisted in MongoDB from a *previous*
+// process will have a different serverBoot stamp (or none at all).  Destroy it
+// so the user is forced to log in again after every server restart.
 app.use((req, res, next) => {
   if (req.session.isLoggedIn &&
       req.session.serverBoot !== req.app.locals.serverBoot) {
@@ -84,20 +79,11 @@ app.use((req, res, next) => {
   next();
 });
 
+// ✅ Fix 3: res.locals middleware
 app.use((req, res, next) => {
   res.locals.isLoggedIn = req.session.isLoggedIn || false;
   res.locals.user = req.session.user || null;
   next();
-});
-
-// ── Ensure DB is connected on every request (required for serverless) ────────
-app.use(async (req, res, next) => {
-  try {
-    await connectDB();
-    next();
-  } catch (err) {
-    next(err);
-  }
 });
 
 app.use(authRouter);
@@ -111,17 +97,19 @@ app.use("/host", hostRouter);
 
 app.use(errorsController.pageNotFound);
 
-// ── Start local dev server only when run directly (not imported by Vercel) ───
+// Connect to MongoDB at module load time (required for Vercel serverless)
+mongoose.connect(DB_PATH).catch(err => {
+  console.error('MongoDB connection error:', err);
+});
+
+// Export app for Vercel (serverless environment)
+module.exports = app;
+
+// Start HTTP server only when run directly (local development)
 if (require.main === module) {
   const PORT = process.env.PORT || 3003;
-  connectDB().then(() => {
-    app.listen(PORT, () => {
-      console.log(`Server running on http://localhost:${PORT}`);
-    });
-  }).catch(err => {
-    console.error('MongoDB connection error:', err);
+  app.listen(PORT, () => {
+    console.log(`Server running on address http://localhost:${PORT}`);
   });
 }
-
-module.exports = app;
 
