@@ -1,10 +1,4 @@
-const Brevo = require('@getbrevo/brevo');
-
-const getBrevoClient = () => {
-  const client = new Brevo.TransactionalEmailsApi();
-  client.authentications['api-key'].apiKey = process.env.BREVO_API_KEY;
-  return client;
-};
+const axios = require('axios');
 
 /**
  * Generates a cryptographically random 6-digit OTP string
@@ -22,13 +16,7 @@ exports.generateOtp = () => {
  * @param {string} firstName - Used to personalise the greeting
  */
 exports.sendOtpEmail = async (toEmail, otp, firstName) => {
-  const client = getBrevoClient();
-
-  const sendSmtpEmail = new Brevo.SendSmtpEmail();
-  sendSmtpEmail.sender = { name: 'StayNow', email: process.env.EMAIL_USER };
-  sendSmtpEmail.to = [{ email: toEmail }];
-  sendSmtpEmail.subject = 'Verify your StayNow account — Your OTP Code';
-  sendSmtpEmail.htmlContent = `
+  const htmlContent = `
       <!DOCTYPE html>
       <html lang="en">
       <head>
@@ -114,6 +102,19 @@ exports.sendOtpEmail = async (toEmail, otp, firstName) => {
       </html>
     `;
 
-  const data = await client.sendTransacEmail(sendSmtpEmail);
-  return data;
+  await axios.post(
+    'https://api.brevo.com/v3/smtp/email',
+    {
+      sender: { name: 'StayNow', email: process.env.EMAIL_USER },
+      to: [{ email: toEmail }],
+      subject: 'Verify your StayNow account — Your OTP Code',
+      htmlContent,
+    },
+    {
+      headers: {
+        'api-key': process.env.BREVO_API_KEY,
+        'Content-Type': 'application/json',
+      },
+    }
+  );
 };
