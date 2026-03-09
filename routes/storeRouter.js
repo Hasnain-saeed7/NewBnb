@@ -17,7 +17,8 @@ const redirectHostFromIndex = (req, res, next) => {
   next();
 };
 
-storeRouter.get("/", redirectHostFromIndex, storeController.getIndex);
+storeRouter.get("/", (req, res) => res.redirect('/listings'));
+storeRouter.get("/listings", redirectHostFromIndex, storeController.getIndex);
 storeRouter.get("/homes", requireLogin, storeController.getHomes);
 storeRouter.get("/bookings", requireLogin, storeController.getBookings);
 storeRouter.get("/favourites", requireLogin, storeController.getFavouriteList);
