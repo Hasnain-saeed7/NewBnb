@@ -26,10 +26,6 @@ const app = express();
 // Trust Railway/Render reverse proxy so secure cookies and req.ip work correctly
 app.set('trust proxy', 1);
 
-// Unique timestamp for this process run — used to invalidate sessions from
-// previous server instances stored in MongoDB.
-app.locals.serverBoot = Date.now();
-
 
 
 app.set('view engine', 'ejs');
@@ -58,7 +54,7 @@ app.use(express.static(path.join(rootDir, 'public')));
 
 // ✅ Fix 2: saveUninitialized false, add cookie config
 app.use(session({
-  secret: "KnowledgeGate AI with Complete Coding",
+  secret: process.env.SESSION_SECRET || "KnowledgeGate AI with Complete Coding",
   resave: false,
   saveUninitialized: false,
   store: store,
@@ -67,19 +63,7 @@ app.use(session({
   }
 }));
 
-// ── Session invalidation on server restart ───────────────────────────────────
-// Any authenticated session that was persisted in MongoDB from a *previous*
-// process will have a different serverBoot stamp (or none at all).  Destroy it
-// so the user is forced to log in again after every server restart.
-app.use((req, res, next) => {
-  if (req.session.isLoggedIn &&
-      req.session.serverBoot !== req.app.locals.serverBoot) {
-    return req.session.destroy(() => res.redirect('/'));
-  }
-  next();
-});
-
-// ✅ Fix 3: res.locals middleware
+// ── res.locals middleware ───────────────────────────────────────────────────
 app.use((req, res, next) => {
   res.locals.isLoggedIn = req.session.isLoggedIn || false;
   res.locals.user = req.session.user || null;

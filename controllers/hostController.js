@@ -42,6 +42,9 @@ exports.getEditHome = (req, res, next) => {
       console.log("Home not found for editing.");
       return res.redirect("/host/host-home-list");
     }
+    if (home.owner && home.owner.toString() !== res.locals.user._id.toString()) {
+      return res.redirect("/host/host-home-list");
+    }
 
     res.render("host/edit-home", {
       home: home,
@@ -55,7 +58,10 @@ exports.getEditHome = (req, res, next) => {
 
 exports.getHostHomes = (req, res, next) => {
   const search = req.query.search ? req.query.search.trim() : '';
-  const query = search ? { houseName: { $regex: search, $options: 'i' } } : {};
+  const ownerId = res.locals.user._id;
+  const query = search
+    ? { owner: ownerId, houseName: { $regex: search, $options: 'i' } }
+    : { owner: ownerId };
   Home.find(query).then((registeredHomes) => {
     res.render("host/host-home-list", {
       registeredHomes: registeredHomes,
@@ -161,14 +167,18 @@ exports.postEditHome = async (req, res, next) => {
 
 exports.postDeleteHome = (req, res, next) => {
   const homeId = req.params.homeId;
-  console.log("Came to delete ", homeId);
-  Home.findByIdAndDelete(homeId)
-    .then(() => {
-      res.redirect("/host/host-home-list");
-    })
-    .catch((error) => {
-      console.log("Error while deleting ", error);
-    });
+  Home.findById(homeId).then((home) => {
+    if (!home) return res.redirect("/host/host-home-list");
+    if (home.owner && home.owner.toString() !== res.locals.user._id.toString()) {
+      return res.redirect("/host/host-home-list");
+    }
+    return Home.findByIdAndDelete(homeId);
+  }).then(() => {
+    res.redirect("/host/host-home-list");
+  }).catch((error) => {
+    console.log("Error while deleting ", error);
+    next(error);
+  });
 };
 
 exports.getHostProfile = async (req, res, next) => {
