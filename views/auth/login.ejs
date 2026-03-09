@@ -1,71 +1,118 @@
 <%- include('../partials/head') %>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>body { font-family: 'Inter', sans-serif; }</style>
   </head>
-  <body class="bg-gray-100 min-h-screen flex flex-col">
+  <body class="bg-gray-50 min-h-screen flex flex-col">
     <%- include('../partials/nav') %>
-    <main class="container mx-auto mt-8 p-8 bg-white rounded-lg shadow-md max-w-2xl">
-      <h1 class="text-3xl font-bold mb-6 text-center text-gray-800 border-b pb-4">Welcome Back</h1>
-      
-      <form action="/login" method="POST" class="max-w-md mx-auto">
-        <%- include('../partials/errors') %>
 
-        <!-- Verification success banner -->
-        <% if (typeof success !== 'undefined' && success) { %>
-          <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
-            <i class="fas fa-check-circle mr-2"></i>
-            <span><%= success %></span>
+    <main class="flex-1 flex items-center justify-center py-12 px-4">
+      <div class="w-full max-w-md">
+
+        <!-- Card -->
+        <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+
+          <!-- Logo + heading -->
+          <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-14 h-14 rounded-full mb-4" style="background-color:#fff0f3">
+              <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" fill="#FF385C">
+                <path d="M16 1C10.925 1 7 6.375 7 10.5c0 2.094.688 3.938 1.781 5.281L7.22 18.53a1 1 0 0 0 .53 1.345l2.094.813c.5.187 1.063-.032 1.313-.5L12 18.625A8.946 8.946 0 0 0 16 19.5a8.946 8.946 0 0 0 4-.875l.844 1.563c.25.468.813.687 1.313.5l2.094-.813a1 1 0 0 0 .53-1.344l-1.562-2.75C24.313 14.438 25 12.594 25 10.5 25 6.375 21.075 1 16 1zm0 2c4.075 0 7 4.563 7 7.5 0 1.656-.531 3.156-1.438 4.313l-.312.406.344.625 1.375 2.437-.875.344-.781-1.438-.375-.687-.625.375A6.946 6.946 0 0 1 16 17.5a6.946 6.946 0 0 1-3.313-.875l-.625-.344-.375.688-.781 1.437-.875-.344 1.375-2.437.344-.625-.313-.406C10.531 13.656 10 12.156 10 10.5 10 7.563 12.925 3 16 3z"/>
+              </svg>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900">Welcome back</h1>
+            <p class="text-gray-500 text-sm mt-1">Sign in to your StayNow account</p>
           </div>
-        <% } %>
-        
-        <!-- Email field -->
-        <div class="mb-5">
-          <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-          <div class="relative">
-            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
-              <i class="fas fa-envelope"></i>
-            </span>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              placeholder="your.email@example.com"
-              value="<%= oldInput.email ? oldInput.email : '' %>"
-              class="w-full pl-10 px-4 py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition"
-              required />
+
+          <form action="/login" method="POST" class="space-y-5">
+            <%- include('../partials/errors') %>
+
+            <!-- Verification success banner -->
+            <% if (typeof success !== 'undefined' && success) { %>
+              <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl text-sm flex items-center gap-2">
+                <i class="fas fa-check-circle"></i>
+                <span><%= success %></span>
+              </div>
+            <% } %>
+
+            <!-- Email -->
+            <div>
+              <label for="email" class="block text-sm font-medium text-gray-700 mb-1.5">Email address</label>
+              <div class="relative">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-400 pointer-events-none">
+                  <i class="fas fa-envelope text-sm"></i>
+                </span>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  placeholder="you@example.com"
+                  value="<%= oldInput.email ? oldInput.email : '' %>"
+                  class="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:border-transparent transition"
+                  style="--tw-ring-color:#FF385C" onfocus="this.style.borderColor='#FF385C';this.style.boxShadow='0 0 0 3px rgba(255,56,92,0.15)'" onblur="this.style.borderColor='';this.style.boxShadow=''"
+                  required />
+              </div>
+            </div>
+
+            <!-- Password -->
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                <span class="text-xs font-medium" style="color:#FF385C">Forgot password?</span>
+              </div>
+              <div class="relative">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-400 pointer-events-none">
+                  <i class="fas fa-lock text-sm"></i>
+                </span>
+                <input
+                  type="password"
+                  id="password"
+                  name="password"
+                  placeholder="Enter your password"
+                  class="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:border-transparent transition"
+                  onfocus="this.style.borderColor='#FF385C';this.style.boxShadow='0 0 0 3px rgba(255,56,92,0.15)'" onblur="this.style.borderColor='';this.style.boxShadow=''"
+                  required />
+              </div>
+            </div>
+
+            <!-- Submit -->
+            <button
+              type="submit"
+              class="w-full text-white py-3 rounded-xl font-semibold text-sm transition duration-200 flex items-center justify-center gap-2 mt-2"
+              style="background-color:#FF385C"
+              onmouseover="this.style.backgroundColor='#e0314f'" onmouseout="this.style.backgroundColor='#FF385C'">
+              <i class="fas fa-sign-in-alt"></i>
+              Log In
+            </button>
+          </form>
+
+          <!-- Divider -->
+          <div class="flex items-center gap-3 my-6">
+            <div class="flex-1 h-px bg-gray-200"></div>
+            <span class="text-xs text-gray-400 font-medium">or continue with</span>
+            <div class="flex-1 h-px bg-gray-200"></div>
           </div>
+
+          <!-- Social buttons -->
+          <div class="grid grid-cols-2 gap-3">
+            <button type="button" class="flex items-center justify-center gap-2 border border-gray-200 rounded-xl py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
+              <svg class="w-4 h-4" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+              Google
+            </button>
+            <button type="button" class="flex items-center justify-center gap-2 border border-gray-200 rounded-xl py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073C24 5.406 18.627 0 12 0S0 5.406 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.235 2.686.235v2.97h-1.513c-1.491 0-1.956.93-1.956 1.874v2.25h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/></svg>
+              Facebook
+            </button>
+          </div>
+
+          <!-- Sign up link -->
+          <p class="text-center text-sm text-gray-500 mt-6">
+            Don't have an account?
+            <a href="/signup" class="font-semibold" style="color:#FF385C">Sign up</a>
+          </p>
         </div>
-        
-        <!-- Password field -->
-        <div class="mb-6">
-          <div class="flex items-center justify-between mb-1">
-            <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
-          </div>
-          <div class="relative">
-            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
-              <i class="fas fa-lock"></i>
-            </span>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              placeholder="Enter Your Password"
-              class="w-full pl-10 px-4 py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition"
-              required/>
-          </div>
-        </div>
-        
-        <!-- Submit button with animation -->
-        <button type="submit" class="w-full bg-red-500 text-white py-3 rounded-md hover:bg-red-600 focus:ring-4 focus:ring-red-300 font-medium transition duration-300 flex items-center justify-center">
-          <span>Sign In</span>
-          <i class="fas fa-sign-in-alt ml-2"></i>
-        </button>
-        
-        <!-- Sign up link -->
-        <p class="text-center mt-6 text-gray-600">
-          Don't have an account yet? <a href="/signup" class="text-red-500 hover:underline">Sign up</a>
-        </p>
-      </form>
+      </div>
     </main>
+
     <%- include('../partials/footer') %>
   </body>
 </html>
