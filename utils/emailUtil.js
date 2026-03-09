@@ -1,6 +1,10 @@
-const { Resend } = require('resend');
+const Brevo = require('@getbrevo/brevo');
 
-const getResend = () => new Resend(process.env.RESEND_API_KEY);
+const getBrevoClient = () => {
+  const client = new Brevo.TransactionalEmailsApi();
+  client.authentications['api-key'].apiKey = process.env.BREVO_API_KEY;
+  return client;
+};
 
 /**
  * Generates a cryptographically random 6-digit OTP string
@@ -18,14 +22,13 @@ exports.generateOtp = () => {
  * @param {string} firstName - Used to personalise the greeting
  */
 exports.sendOtpEmail = async (toEmail, otp, firstName) => {
-  const resend = getResend();
+  const client = getBrevoClient();
 
-  const mailOptions = {
-    from: 'StayNow <onboarding@resend.dev>',
-    to: toEmail,
-    subject: 'Verify your StayNow account — Your OTP Code',
-    reply_to: process.env.EMAIL_USER,
-    html: `
+  const sendSmtpEmail = new Brevo.SendSmtpEmail();
+  sendSmtpEmail.sender = { name: 'StayNow', email: process.env.EMAIL_USER };
+  sendSmtpEmail.to = [{ email: toEmail }];
+  sendSmtpEmail.subject = 'Verify your StayNow account — Your OTP Code';
+  sendSmtpEmail.htmlContent = `
       <!DOCTYPE html>
       <html lang="en">
       <head>
@@ -109,17 +112,8 @@ exports.sendOtpEmail = async (toEmail, otp, firstName) => {
         </table>
       </body>
       </html>
-    `,
-  };
+    `;
 
-  const { data, error } = await resend.emails.send({
-    from: mailOptions.from,
-    to: mailOptions.to,
-    subject: mailOptions.subject,
-    reply_to: mailOptions.reply_to,
-    html: mailOptions.html,
-  });
-
-  if (error) throw new Error(error.message);
+  const data = await client.sendTransacEmail(sendSmtpEmail);
   return data;
 };
