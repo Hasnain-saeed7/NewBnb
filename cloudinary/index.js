@@ -10,7 +10,7 @@ cloudinary.config({
 const storage = new CloudinaryStorage({
   cloudinary,
   params: {
-    folder: 'StayNow',
+    folder: 'Airbnb_Clone',
     allowed_formats: ['jpeg', 'png', 'jpg'],
   },
 });
